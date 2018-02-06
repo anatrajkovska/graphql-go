@@ -10,8 +10,13 @@ type Temp {
     value: String
 }
 
+type Time {
+    time: String
+}
+
 type Query {
     getCurrentTemperature(city: String): Temp
+    getCurrentTime(continent: String, city: String): Time
 }
 ```
 
