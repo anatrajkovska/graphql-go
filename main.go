@@ -2,11 +2,25 @@ package main
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/graphql-go/handler"
 
 	"github.com/graphql-go/graphql"
 )
+
+type Time struct {
+	Time string `json:"time"`
+}
+
+var timeType = graphql.NewObject(graphql.ObjectConfig{
+	Name: "Time",
+	Fields: graphql.Fields{
+		"time": &graphql.Field{
+			Type: graphql.String,
+		},
+	},
+})
 
 type City struct {
 	Name  string `json:"name"`
@@ -72,6 +86,27 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 					}
 				}
 				return nil, nil
+			},
+		},
+		"getCurrentTime": &graphql.Field{
+			Type: timeType,
+			Args: graphql.FieldConfigArgument{
+				"city": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+				"continent": &graphql.ArgumentConfig{
+					Type: graphql.String,
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+
+				city := p.Args["city"].(string)
+				continent := p.Args["continent"].(string)
+				loc, _ := time.LoadLocation(continent + "/" + city)
+				now := time.Now().In(loc)
+				timeNow := Time{now.String()}
+
+				return timeNow, nil
 			},
 		},
 	},
