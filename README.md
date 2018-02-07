@@ -14,9 +14,17 @@ type Time {
     time: String
 }
 
+type Post {
+    id: Int
+    userId: Int
+    title: String
+    body: String
+}
+
 type Query {
     getCurrentTemperature(city: String): Temp
     getCurrentTime(continent: String, city: String): Time
+    getPosts(id: Int, userId: Int): [Post]
 }
 ```
 

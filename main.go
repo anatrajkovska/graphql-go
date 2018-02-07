@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -12,6 +14,31 @@ import (
 type Time struct {
 	Time string `json:"time"`
 }
+
+type Post struct {
+	ID     int    `json:"id"`
+	UserID int    `json:"userId"`
+	Title  string `json:"title"`
+	Body   string `json:"body"`
+}
+
+var postType = graphql.NewObject(graphql.ObjectConfig{
+	Name: "Post",
+	Fields: graphql.Fields{
+		"id": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"userId": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"title": &graphql.Field{
+			Type: graphql.String,
+		},
+		"body": &graphql.Field{
+			Type: graphql.String,
+		},
+	},
+})
 
 var timeType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Time",
@@ -107,6 +134,38 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 				timeNow := Time{now.String()}
 
 				return timeNow, nil
+			},
+		},
+		"getPosts": &graphql.Field{
+			Type: &graphql.List{
+				OfType: postType,
+			},
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{
+					Type: graphql.Int,
+				},
+				"userId": &graphql.ArgumentConfig{
+					Type: graphql.Int,
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				var posts = []Post{}
+
+				response, err := http.Get("https://jsonplaceholder.typicode.com/posts")
+
+				if err != nil {
+					fmt.Printf("%s", err)
+				} else {
+					defer response.Body.Close()
+
+					err := json.NewDecoder(response.Body).Decode(&posts)
+
+					if err != nil {
+						fmt.Printf("%s", err)
+					}
+				}
+
+				return posts, nil
 			},
 		},
 	},
