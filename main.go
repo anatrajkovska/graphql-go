@@ -6,10 +6,16 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/go-querystring/query"
 	"github.com/graphql-go/handler"
 
 	"github.com/graphql-go/graphql"
 )
+
+type Options struct {
+	ID     int `url:"id,omitempty"`
+	UserID int `url:"userId,omitempty"`
+}
 
 type Time struct {
 	Time string `json:"time"`
@@ -144,14 +150,34 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 				"id": &graphql.ArgumentConfig{
 					Type: graphql.Int,
 				},
-				"userId": &graphql.ArgumentConfig{
+				"userID": &graphql.ArgumentConfig{
 					Type: graphql.Int,
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				opts := Options{}
+				url := "https://jsonplaceholder.typicode.com/posts"
+
+				id, okID := p.Args["id"]
+				userID, okUserID := p.Args["userID"]
+
+				if okID == true {
+					opts.ID = id.(int)
+				}
+
+				if okUserID == true {
+					opts.UserID = userID.(int)
+				}
+
+				v, _ := query.Values(opts)
+
+				if v.Encode() != "" {
+					url = url + "?" + v.Encode()
+				}
+
 				var posts = []Post{}
 
-				response, err := http.Get("https://jsonplaceholder.typicode.com/posts")
+				response, err := http.Get(url)
 
 				if err != nil {
 					fmt.Printf("%s", err)
