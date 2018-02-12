@@ -21,10 +21,19 @@ type Post {
     body: String
 }
 
+type Photo {
+    id: Int
+    albumId: Int
+    title: String
+    url: String
+    thumbnailUrl: String
+}
+
 type Query {
     getCurrentTemperature(city: String): Temp
     getCurrentTime(continent: String, city: String): Time
     getPosts(id: Int, userId: Int): [Post]
+    getPhotos(id: Int, albumId: Int): [Photo]
 }
 ```
 
