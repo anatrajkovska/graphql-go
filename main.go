@@ -12,7 +12,20 @@ import (
 	"github.com/graphql-go/graphql"
 )
 
-type Options struct {
+type PhotoOptions struct {
+	ID      int `url:"id,omitempty"`
+	AlbumID int `url:"albumId,omitempty"`
+}
+
+type Photo struct {
+	ID           int    `json:"id"`
+	AlbumID      int    `json:"albumId"`
+	Title        string `json:"title"`
+	URL          string `json:"url"`
+	ThumbnailURL string `json:"thumbnailUrl"`
+}
+
+type PostOptions struct {
 	ID     int `url:"id,omitempty"`
 	UserID int `url:"userId,omitempty"`
 }
@@ -27,6 +40,36 @@ type Post struct {
 	Title  string `json:"title"`
 	Body   string `json:"body"`
 }
+
+type City struct {
+	Name  string `json:"name"`
+	Value int    `json:"value"`
+}
+
+var schema, _ = graphql.NewSchema(graphql.SchemaConfig{
+	Query: queryType,
+})
+
+var photoType = graphql.NewObject(graphql.ObjectConfig{
+	Name: "Photo",
+	Fields: graphql.Fields{
+		"albumId": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"id": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"title": &graphql.Field{
+			Type: graphql.String,
+		},
+		"url": &graphql.Field{
+			Type: graphql.String,
+		},
+		"thumbnailUrl": &graphql.Field{
+			Type: graphql.String,
+		},
+	},
+})
 
 var postType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Post",
@@ -54,11 +97,6 @@ var timeType = graphql.NewObject(graphql.ObjectConfig{
 		},
 	},
 })
-
-type City struct {
-	Name  string `json:"name"`
-	Value int    `json:"value"`
-}
 
 func createDummyData() {
 	cities := []string{
@@ -155,7 +193,7 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 				},
 			},
 			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-				opts := Options{}
+				opts := PostOptions{}
 				url := "https://jsonplaceholder.typicode.com/posts"
 
 				id, okID := p.Args["id"]
@@ -194,11 +232,59 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 				return posts, nil
 			},
 		},
-	},
-})
+		"getPhotos": &graphql.Field{
+			Type: &graphql.List{
+				OfType: photoType,
+			},
+			Args: graphql.FieldConfigArgument{
+				"id": &graphql.ArgumentConfig{
+					Type: graphql.Int,
+				},
+				"albumID": &graphql.ArgumentConfig{
+					Type: graphql.Int,
+				},
+			},
+			Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+				opts := PhotoOptions{}
+				url := "https://jsonplaceholder.typicode.com/photos"
 
-var schema, _ = graphql.NewSchema(graphql.SchemaConfig{
-	Query: queryType,
+				id, okID := p.Args["id"]
+				albumID, okAlbumID := p.Args["albumID"]
+
+				if okID == true {
+					opts.ID = id.(int)
+				}
+
+				if okAlbumID == true {
+					opts.AlbumID = albumID.(int)
+				}
+
+				v, _ := query.Values(opts)
+
+				if v.Encode() != "" {
+					url = url + "?" + v.Encode()
+				}
+
+				var photos = []Photo{}
+
+				response, err := http.Get(url)
+
+				if err != nil {
+					fmt.Printf("%s", err)
+				} else {
+					defer response.Body.Close()
+
+					err := json.NewDecoder(response.Body).Decode(&photos)
+
+					if err != nil {
+						fmt.Printf("%s", err)
+					}
+				}
+
+				return photos, nil
+			},
+		},
+	},
 })
 
 func main() {
