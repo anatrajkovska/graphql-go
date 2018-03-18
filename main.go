@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"time"
 
@@ -31,6 +32,7 @@ type PostOptions struct {
 }
 
 type Time struct {
+	ID   int    `json:"id"`
 	Time string `json:"time"`
 }
 
@@ -92,6 +94,9 @@ var postType = graphql.NewObject(graphql.ObjectConfig{
 var timeType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Time",
 	Fields: graphql.Fields{
+		"id": &graphql.Field{
+			Type: graphql.ID,
+		},
 		"time": &graphql.Field{
 			Type: graphql.String,
 		},
@@ -132,6 +137,9 @@ var data = []City{}
 var tempType = graphql.NewObject(graphql.ObjectConfig{
 	Name: "Temp",
 	Fields: graphql.Fields{
+		"id": &graphql.Field{
+			Type: graphql.ID,
+		},
 		"value": &graphql.Field{
 			Type: graphql.String,
 		},
@@ -175,7 +183,7 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 				continent := p.Args["continent"].(string)
 				loc, _ := time.LoadLocation(continent + "/" + city)
 				now := time.Now().In(loc)
-				timeNow := Time{now.String()}
+				timeNow := Time{rand.Intn(1000), now.String()}
 
 				return timeNow, nil
 			},
@@ -287,13 +295,27 @@ var queryType = graphql.NewObject(graphql.ObjectConfig{
 	},
 })
 
+type HttpHandlerWrapper struct {
+	Handler http.Handler
+}
+
+func (wrapper *HttpHandlerWrapper) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	rw.Header().Set("Access-Control-Allow-Origin", "*")
+	wrapper.Handler.ServeHTTP(rw, req)
+}
+
 func main() {
 	createDummyData()
+
 	h := handler.New(&handler.Config{
 		Schema:   &schema,
 		Pretty:   true,
 		GraphiQL: true,
 	})
-	http.Handle("/graphql", h)
+
+	wrapper := &HttpHandlerWrapper{
+		Handler: h,
+	}
+	http.Handle("/graphql", wrapper)
 	http.ListenAndServe(":8080", nil)
 }
